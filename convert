@@ -1,0 +1,81 @@
+ 7006-1080.mp4 -r 25 -s 426x240 -b:v 240k -b:a 56k -ac 1 temp.mp4
+#avconv -i [[input-file]] -r [[frame-rate]] -s [[size]] -b:v [[video bitrate]] -b:a [[audio bitrate]] -ac 1 [[ apenas para Mono ]]
+
+lock=/tmp/convert.lock
+
+function help_command
+{
+        echo $'\n'
+        echo $'\tUsage: convert <<RESOLUTION>> <<INPUT FILE>> <<OUTPUT DIR>>'
+        echo $'\tExample: convert 240p input.mp4 /home/user/output \n'
+        echo $'\tSupported Resolutions: 240p, 360p, 480p, 720p, 1080p or ALL'
+        echo $'\n'
+}
+
+if [ "$1" = '-h' ]; then
+        help_command
+        exit 0
+fi
+
+if [ "$1" = "" ] || [ "$2" = "" ] || [ "$3" = "" ]; then
+        help_command
+        exit 1
+fi
+
+if [ "$1" != "240p" ] && [ "$1" != "360p" ] && [ "$1" != "480p" ] && [ "$1" != "720p" ] && [ "$1" != "1080p" ] && [ "$1" != "all" ] && [ "$1" != "ALL" ];
+ then
+        help_command
+        exit 1
+fi
+
+mkdir -p "$3"
+topdir=$(basename "$3")
+
+if [ "$1" = "240p" ]; then
+        filename="$3/$topdir-240.mp4"
+        avconv -i "$2" -r 25 -s 426x240 -b:v 240k -b:a 56k -ac 1 -strict experimental $filename
+fi
+
+if [ "$1" = "360p" ]; then
+        filename="$3/$topdir-360.mp4"
+        avconv -i "$2" -r 25 -s 640x360 -b:v 398k -b:a 56k -strict experimental $filename
+fi
+if [ "$1" = "480p" ]; then
+	filename="$3/$topdir-480.mp4"
+	avconv -i "$2" -r 25 -s 854x480 -b:v 594k -b:a 64k -strict experimental $filename
+fi
+
+if [ "$1" = "720p" ]; then
+	filename="$3/$topdir-720.mp4"
+        avconv -i "$2" -r 25 -s 1280x720 -b:v 953k -b:a 128k -strict experimental $filename
+fi
+
+if [ "$1" = "1080p" ]; then
+	filename= "$3/$topdir-1080.mp4"
+	avconv -i "$2" -r 25 -s 1920x1080 -b:v 2000k -b:a 192k -strict experimental $filename
+fi
+
+if [ "$1" = "ALL" ] || [ "$1" = "all" ]; then
+        [[ ! -e $lock ]] && touch $lock
+
+	echo 'Conveting ALL'
+	avconv -i "$2" -y -loglevel panic -r 25 -s 426x240 -b:v 240k -b:a 56k -ac 1 -strict experimental "$3/$topdir-240.mp4"&
+	pids[0]=$!
+	avconv -i "$2" -y -loglevel panic -r 25 -s 640x360 -b:v 398k -b:a 56k -strict experimental "$3/$topdir-360.mp4"&
+	pids[1]=$!
+	avconv -i "$2" -y -loglevel panic -r 25 -s 854x480 -b:v 594k -b:a 64k -strict experimental "$3/$topdir-480.mp4"&
+	pids[2]=$!
+	avconv -i "$2" -y -loglevel panic -r 25 -s 1280x720 -b:v 953k -b:a 128k -strict experimental "$3/$topdir-720.mp4"&
+	pids[3]=$!
+	avconv -i "$2" -y -loglevel panic -r 25 -s 1920x1080 -b:v 2000k -b:a 192k -strict experimental "$3/$topdir-1080.mp4"&
+	pids[4]=$!
+	avconv -i "$2" -y -loglevel panic -r 1/30 -s 854x480 -f image2 -qscale:v 5 "$3/$topdir-%03d.jpg"&
+	pids[5]=$!
+fi
+
+echo 'All conversions started'
+for pid in ${pids[*]};  do echo $pid; wait $pid; done;
+rm -rf $lock
+echo 'All conversions finished'
+exit 0
+

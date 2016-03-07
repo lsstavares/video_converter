@@ -1,0 +1,23 @@
+pe=/tmp/convert
+lock=/tmp/convert.lock
+
+trap "rm -f $pipe" EXIT
+
+# creating the FIFO
+[[ -e $pipe ]] || touch $pipe
+
+while true; do
+    if [ -e $lock ]; then
+        sleep 120
+    else
+        line=$(head -n 1 $pipe)
+
+        if [ $line = "" ]; then
+            sleep 120
+        else
+            $(sed -i '1d' $pipe);
+            [[ $line =~ ^convert ]] && bash <<< "$line"
+            #touch $lock
+        fi
+    fi
+done

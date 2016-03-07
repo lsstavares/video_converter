@@ -1,0 +1,5 @@
+f [[ -e /tmp/convert ]]; then
+    echo "convert all \"$1\" \"$2\"" >> /tmp/convert
+else
+    echo >&2 "convert FIFO isn't open :/"
+fi
